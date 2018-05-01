@@ -23,11 +23,11 @@ cd $(dirname $0)
 
 if [ "$BUILD" = true ] ; then
   echo "BUILDING DOCKER $REPO:$ARCH_TAG"
-  
+
   #Prepare qemu
   mkdir -p qemu
   cd qemu
-  
+
   if [ -z "$QEMU_ARCH" ]; then
     echo "Building without qemu"
     touch qemu-"$QEMU_ARCH"-static
@@ -44,7 +44,6 @@ if [ "$BUILD" = true ] ; then
   cd ..
 
   #Build docker
-  BASE=alpine
   if [ -n "$TARGET_IMG" ]; then
     BASE="$TARGET_IMG/$BASE"
   fi
@@ -63,12 +62,12 @@ fi
 
 if [ "$MANIFEST" = true ] ; then
   echo "PUSHING MANIFEST for $ARCHS"
-  
+
   for arch in $ARCHS; do
     echo
     echo "Pull ${REPO}:${TAG}-${arch}"
     docker pull ${REPO}:${TAG}-${arch}
-    
+
     echo
     echo "Add ${REPO}:${TAG}-${arch} to manifest ${REPO}:${TAG}"
     docker manifest create --amend ${REPO}:${TAG} ${REPO}:${TAG}-${arch}
