@@ -12,16 +12,17 @@ language: bash
 
 env:
   matrix:
-  # TARGET_IMG  = Base image architecture to be used
+  # TARGET_IMG  = Base image architecture to be used for alpine
   # TARGET_ARCH = qemu binary to be downloaded from https://github.com/multiarch/qemu-user-static/releases
-  - TARGET_IMG=amd64   TARGET_ARCH=amd64
-  - TARGET_IMG=arm64v8 TARGET_ARCH=aarch64
-  - TARGET_IMG=arm32v6 TARGET_ARCH=arm
+  - TARGET_IMG=amd64   
+  - TARGET_IMG=arm64v8 DOCKER_ARCH=arm64 QEMU_ARCH=aarch64
+  - TARGET_IMG=arm32v6 DOCKER_ARCH=arm   QEMU_ARCH=arm
 
 script:
 - BUILD=true PUSH=false ./build.sh
 - |
-  if [ "$TRAVIS_BRANCH" == "master" -a "$TRAVIS_PULL_REQUEST" == "false" ]; then
+  # maybe depending on the $TRAVIS_BRANCH I can build master or devel branches
+  if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     # Push image
     docker login -u="$DOCKER_USER" -p="$DOCKER_PASS"
     BUILD=false PUSH=true ./build.sh
@@ -32,7 +33,11 @@ jobs:
   - stage: Manifest
     script:
     - |
-      if [ "$TRAVIS_BRANCH" == "master" -a "$TRAVIS_PULL_REQUEST" == "false" ]; then
-        BUILD=false PUSH=false MANIFEST=true ./build.sh
+      mkdir -p $HOME/.docker
+      echo '{"experimental": "enabled"}'>$HOME/.docker/config.json
+    - docker login -u="$DOCKER_USER" -p="$DOCKER_PASS"
+    - |
+      if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+        ARCHS="arm amd64 arm64" BUILD=false PUSH=false MANIFEST=true ./build.sh
       fi
     env:

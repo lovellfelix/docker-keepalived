@@ -3,34 +3,21 @@ set -e
 cd $(dirname $0)
 
 #Usually set from the outside
-: ${TARGET_ARCH:="$(uname -m)"}
+: ${DOCKER_ARCH:="$(docker version -f '{{.Server.Arch}}')"}
+# QEMU_ARCH #Not set means no qemu emulation
 : ${TARGET_IMG:=""}
 : ${TAG:="latest"}
 : ${BUILD:="true"}
 : ${PUSH:="true"}
 : ${MANIFEST:="false"}
+: ${ARCHS:=""}
 
 #good defaults
 : ${BASE:="alpine"}
 : ${REPO:="angelnu/keepalived"}
 : ${QEMU_VERSION:="v2.11.1"}
+: ${ARCH_TAG:="$TAG-$DOCKER_ARCH"}
 
-
-case $TARGET_ARCH in
-armv7l|arm)
-  ARCH_TAG="${TAG}-arm"
-  ;;
-aarch64)
-  ARCH_TAG="${TAG}-aarch64"
-  ;;
-x86_64|amd64)
-  ARCH_TAG="${TAG}-amd64"
-  ;;
-*)
-  echo "Unknown arch $TARGET_ARCH"
-  exit 1
-  ;;
-esac
 
 ###############################
 
@@ -40,16 +27,18 @@ if [ "$BUILD" = true ] ; then
   #Prepare qemu
   mkdir -p qemu
   cd qemu
-  if [ ! -f qemu-"$TARGET_ARCH"-static ]; then
-    echo "Running in arch $(uname -m) and with TARGET_ARCH $TARGET_ARCH"
-    if [ "$TARGET_ARCH" = "amd64" -o "$TARGET_ARCH" = "$(uname -m)" ]; then
-      touch qemu-"$TARGET_ARCH"-static
-    else
-      # Prepare qemu
+  
+  if [ -z "$QEMU_ARCH" ]; then
+    echo "Building without qemu"
+    touch qemu-"$QEMU_ARCH"-static
+  else
+    # Prepare qemu
+    echo "Building docker for arch $DOCKER_ARCH using qemu arch $QEMU_ARCH"
+    if [ ! -f qemu-"$QEMU_ARCH"-static ]; then
       docker run --rm --privileged multiarch/qemu-user-static:register --reset
-      curl -L -o qemu-"$TARGET_ARCH"-static.tar.gz https://github.com/multiarch/qemu-user-static/releases/download/"$QEMU_VERSION"/qemu-"$TARGET_ARCH"-static.tar.gz
-      tar xzf qemu-"$TARGET_ARCH"-static.tar.gz
-      rm qemu-"$TARGET_ARCH"-static.tar.gz
+      curl -L -o qemu-"$QEMU_ARCH"-static.tar.gz https://github.com/multiarch/qemu-user-static/releases/download/"$QEMU_VERSION"/qemu-"$QEMU_ARCH"-static.tar.gz
+      tar xzf qemu-"$QEMU_ARCH"-static.tar.gz
+      rm qemu-"$QEMU_ARCH"-static.tar.gz
     fi
   fi
   cd ..
@@ -60,7 +49,7 @@ if [ "$BUILD" = true ] ; then
     BASE="$TARGET_IMG/$BASE"
   fi
   echo "Using base image: $BASE"
-  docker build -t $REPO:$ARCH_TAG --build-arg BASE=$BASE --build-arg arch=$TARGET_ARCH .
+  docker build -t $REPO:$ARCH_TAG --build-arg BASE=$BASE --build-arg arch=$QEMU_ARCH .
 fi
 
 ##############################
@@ -77,13 +66,16 @@ if [ "$MANIFEST" = true ] ; then
   
   for arch in $ARCHS; do
     echo
-    echo "Add ${REPO}/${IMAGE}:${TAG}-${arch} to manifest ${REPO}/${IMAGE}:${TAG}"
+    echo "Pull ${REPO}:${TAG}-${arch}"
+    docker pull ${REPO}:${TAG}-${arch}
+    
     echo
-    docker manifest create --amend ${REPO}/${IMAGE}:${TAG} ${REPO}/${IMAGE}:${TAG}-${arch}
-    docker manifest annotate       ${REPO}/${IMAGE}:${TAG} ${REPO}/${IMAGE}:${TAG}-${arch} --arch ${arch}
+    echo "Add ${REPO}:${TAG}-${arch} to manifest ${REPO}:${TAG}"
+    docker manifest create --amend ${REPO}:${TAG} ${REPO}:${TAG}-${arch}
+    docker manifest annotate       ${REPO}:${TAG} ${REPO}:${TAG}-${arch} --arch ${arch}
   done
 
   echo
-  echo "Push manifest angelnu/${IMAGE}:${TAG}"
-  docker manifest push ${REPO}/${IMAGE}:${TAG}
+  echo "Push manifest ${REPO}:${TAG}"
+  docker manifest push ${REPO}:${TAG}
 fi
