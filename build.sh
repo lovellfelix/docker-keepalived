@@ -16,7 +16,7 @@ cd $(dirname $0)
 : ${BASE:="alpine"}
 : ${REPO:="angelnu/keepalived"}
 : ${QEMU_VERSION:="v2.11.1"}
-: ${ARCH_TAG:="$TAG-$DOCKER_ARCH"}
+: ${ARCH_TAG:="${TAG}-${DOCKER_ARCH}"}
 
 
 ###############################
@@ -47,14 +47,14 @@ if [ "$BUILD" = true ] ; then
   if [ -n "$TARGET_IMG" ]; then
     BASE="$TARGET_IMG/$BASE"
   fi
-  echo "Using base image: $BASE"
+  echo "Building $REPO:$ARCH_TAG using base image $BASE and qemu arch $QEMU_ARCH"
   docker build -t $REPO:$ARCH_TAG --build-arg BASE=$BASE --build-arg arch=$QEMU_ARCH .
 fi
 
 ##############################
 
 if [ "$PUSH" = true ] ; then
-  echo "PUSHING TO DOCKER"
+  echo "PUSHING TO DOCKER: $REPO:$ARCH_TAG"
   docker push $REPO:$ARCH_TAG
 fi
 
