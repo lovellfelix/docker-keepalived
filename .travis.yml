@@ -30,6 +30,7 @@ script:
 
 jobs:
   include:
+    
   - stage: Manifest
     script:
     - if [ "x$TRAVIS_BRANCH" = "xmaster" ]; then export TAG="latest"; else export TAG="devel";fi
