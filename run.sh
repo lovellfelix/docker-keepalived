@@ -4,11 +4,13 @@ PATH_KEEPALIVED_CONF="/etc/keepalived/keepalived.conf"
 
 if [ -z "$HOST_IP" ]; then
   interface=${KEEPALIVED_INTERFACE:-eth0}
-  priority=${KEEPALIVED_PRIORITY:-100}
+  ip_byte=${KEEPALIVED_PRIORITY:-100}
 else
   interface=$(ifconfig | grep -B1 "$HOST_IP" | grep -o "^\w*")
-  priority=$(echo "$HOST_IP" | cut -d. -f4)
+  ip_byte=$(echo "$HOST_IP" | cut -d. -f4)
 fi
+
+priority=$(( 255 - $ip_byte ))
 
 floating_ip=${KEEPALIVED_VIRTUAL_IP:-172.16.50.5}
 password=${KEEPALIVED_PASSWORD:-secret}

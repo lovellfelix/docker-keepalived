@@ -25,6 +25,13 @@ spec:
       - name: keepalived
         image: angelnu/keepalived:latest
         imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "4Mi"
+            cpu: "2m"
+          limits:
+            #memory: "128Mi"
+            #cpu: "500m"
         securityContext:
           privileged: true
         env:
@@ -35,6 +42,9 @@ spec:
             fieldRef:
               fieldPath: status.hostIP
         - name: KEEPALIVED_VIRTUAL_IP
-          value: 192.168.2.200
+          value: 192.168.2.250
         - name: KEEPALIVED_PASSWORD
-          value: "changeMe"
+          valueFrom:
+            secretKeyRef:
+              name: keepalived-secret
+              key: password
