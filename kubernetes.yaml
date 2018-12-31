@@ -21,6 +21,9 @@ spec:
         app: keepalived
     spec:
       hostNetwork: true
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
       containers:
       - name: keepalived
         image: angelnu/keepalived:latest
@@ -42,7 +45,7 @@ spec:
             fieldRef:
               fieldPath: status.hostIP
         - name: KEEPALIVED_VIRTUAL_IP
-          value: 192.168.2.250
+          value: 192.168.2.200
         - name: KEEPALIVED_PASSWORD
           valueFrom:
             secretKeyRef:
